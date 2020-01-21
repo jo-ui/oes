@@ -8,10 +8,9 @@ class Transaction {
    * @param {string} toAddress
    * @param {number} amount
    */
-  constructor(fromAddress, toAddress, amount) {
-    this.fromAddress = fromAddress;
-    this.toAddress = toAddress;
-    this.amount = amount;
+  constructor(voter, candidate) {
+    this.voter = voter;
+    this.candidate = candidate;
     this.timestamp = Date.now();
   }
 
@@ -21,7 +20,7 @@ class Transaction {
    * @returns {string}
    */
   calculateHash() {
-    return crypto.createHash('sha256').update(this.fromAddress + this.toAddress + this.amount + this.timestamp).digest('hex');
+    return crypto.createHash('sha256').update(this.voter + this.candidate + this.timestamp).digest('hex');
   }
 
   /**
@@ -33,8 +32,8 @@ class Transaction {
    */
   signTransaction(signingKey) {
     // You can only send a transaction from the wallet that is linked to your
-    // key. So here we check if the fromAddress matches your publicKey
-    if (signingKey.getPublic('hex') !== this.fromAddress) {
+    // key. So here we check if the voter matches your publicKey
+    if (signingKey.getPublic('hex') !== this.voter) {
       throw new Error('You cannot sign transactions for other wallets!');
     }
 
@@ -49,7 +48,7 @@ class Transaction {
 
   /**
    * Checks if the signature is valid (transaction has not been tampered with).
-   * It uses the fromAddress as the public key.
+   * It uses the voter as the public key.
    *
    * @returns {boolean}
    */
@@ -57,13 +56,13 @@ class Transaction {
     // If the transaction doesn't have a from address we assume it's a
     // mining reward and that it's valid. You could verify this in a
     // different way (special field for instance)
-    if (this.fromAddress === null) return true;
+    if (this.voter === null) return true;
 
     if (!this.signature || this.signature.length === 0) {
       throw new Error('No signature in this transaction');
     }
 
-    const publicKey = ec.keyFromPublic(this.fromAddress, 'hex');
+    const publicKey = ec.keyFromPublic(this.voter, 'hex');
     return publicKey.verify(this.calculateHash(), this.signature);
   }
 }
@@ -177,22 +176,13 @@ class Blockchain {
    * 
    */
   addTransaction(transaction) {
-    if (!transaction.fromAddress || !transaction.toAddress) {
+    if (!transaction.voter || !transaction.candidate) {
       throw new Error('Transaction must include from and to address');
     }
 
     // Verify the transactiion
     if (!transaction.isValid()) {
       throw new Error('Cannot add invalid transaction to chain');
-    }
-
-    if (transaction.amount < 0) {
-      throw new Error('Transaction amount should be higher than 0');
-    }
-
-    // Making sure that the amount sent is not greater than existing balance
-    if (this.getBalanceOfAddress(transaction.fromAddress) < transaction.amount) {
-      throw new Error('Not enough balance');
     }
 
     this.pendingTransactions.push(transaction);
@@ -209,11 +199,11 @@ class Blockchain {
 
     for (const block of this.chain) {
       for (const trans of block.transactions) {
-        if (trans.fromAddress === address) {
+        if (trans.voter === address) {
           balance -= trans.amount;
         }
 
-        if (trans.toAddress === address) {
+        if (trans.candidate === address) {
           balance += trans.amount;
         }
       }
@@ -235,7 +225,7 @@ class Blockchain {
 
     for (const block of this.chain) {
       for (const tx of block.transactions) {
-        if (tx.fromAddress === address || tx.toAddress === address) {
+        if (tx.voter === address || tx.candidate === address) {
           txs.push(tx);
         }
       }
