@@ -9,7 +9,7 @@ session_start();
       <input type="text" name="maill" placeholder="email">
       <input type="password" name="oldPwd" placeholder="Old Password">
       <input type="password" name="newPwd" placeholder="new Password">
-      <input type="password" name="rePwd" placeholder="repeat Password">
+      <input type="password" name="coPwd" placeholder="confirm Password">
       <button type="submit" name="submit-change">Save Change</button>
    </form>
    <br>
